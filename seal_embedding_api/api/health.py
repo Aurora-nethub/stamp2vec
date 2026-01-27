@@ -4,6 +4,7 @@ Health check endpoint
 
 import time
 import random
+import threading
 from pathlib import Path
 from typing import List
 from fastapi import APIRouter, Request, HTTPException
@@ -11,6 +12,12 @@ from PIL import Image
 import numpy as np
 
 from ..models import HealthCheckResponse, VerifySummary
+from ..config_loader import ConfigLoader
+from train.model import SealEmbeddingNet
+from ..core.embedding_service import EmbeddingService
+from ..core.detection_service import DetectionService
+from ..core.storage import Storage
+from ..core.similarity_service import SimilarityService
 
 
 router = APIRouter()
@@ -31,6 +38,39 @@ def _sample_files(files: List[Path], max_images: int, random_sample: bool) -> Li
     if random_sample:
         return random.sample(files, max_images)
     return files[:max_images]
+
+
+def _reinit_services(app_state) -> None:
+    lock = getattr(app_state, "health_reinit_lock", None)
+    if lock is None:
+        lock = threading.Lock()
+        app_state.health_reinit_lock = lock
+
+    with lock:
+        config = ConfigLoader.load("config/api_config.json")
+        device = app_state.device
+        if device is None:
+            raise RuntimeError("Device not initialized")
+
+        model, cfg = SealEmbeddingNet.from_package(
+            pkg_dir=config.embedding_model.pkg_dir,
+            device=device,
+            verbose=False,
+        )
+
+        app_state.model = model
+        app_state.config = config
+        app_state.embedding_service = EmbeddingService(
+            model,
+            cfg,
+            device,
+            batch_size=config.batch_processing.embedding_batch_size,
+        )
+        app_state.detection_service = DetectionService(config.detection_model)
+        app_state.storage = Storage(base_dir=config.storage.base_dir)
+        app_state.similarity_service = SimilarityService()
+        if hasattr(app_state, "health_verify_cache"):
+            delattr(app_state, "health_verify_cache")
 
 
 async def _run_verify(
@@ -88,18 +128,13 @@ async def health_check(
     """
     Health check endpoint - tests if model is loaded and can run embedding
     """
-    try:
+    async def _run_once():
         app_state = fastapi_request.app.state
         embedding_service = app_state.embedding_service
         detection_service = app_state.detection_service
 
         if embedding_service is None or detection_service is None:
-            return HealthCheckResponse(
-                status="unhealthy",
-                model_loaded=False,
-                embedding_dim=768,
-                message="Services not initialized",
-            )
+            raise RuntimeError("Services not initialized")
 
         response = HealthCheckResponse(
             status="healthy",
@@ -139,17 +174,17 @@ async def health_check(
         }
         response.verify = verify_summary
         return response
-    except HTTPException as e:
-        return HealthCheckResponse(
-            status="unhealthy",
-            model_loaded=False,
-            embedding_dim=768,
-            message=str(e.detail),
-        )
-    except Exception as e:
-        return HealthCheckResponse(
-            status="unhealthy",
-            model_loaded=False,
-            embedding_dim=768,
-            message=str(e),
-        )
+
+    try:
+        return await _run_once()
+    except Exception:
+        try:
+            _reinit_services(fastapi_request.app.state)
+            return await _run_once()
+        except Exception as e:
+            return HealthCheckResponse(
+                status="unhealthy",
+                model_loaded=False,
+                embedding_dim=768,
+                message=str(e),
+            )

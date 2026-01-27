@@ -38,6 +38,7 @@ Response:
 Notes:
 - `verify=true` requires data in `data/query` and `data/candidate`.
 - Verification runs detection first, then embedding, then similarity top-1 stats.
+- If health fails, the service attempts one in-process reinit and retries once.
 
 ## 2) Ingest (base64)
 POST `/seals/ingest_base64`
