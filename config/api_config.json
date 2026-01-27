@@ -15,11 +15,7 @@
     "base_dir": "database/embeddings"
   },
   "similarity_search": {
-    "default_top_k": 3,
-    "confidence_thresholds": {
-      "high": 0.9,
-      "medium": 0.5
-    }
+    "default_top_k": 3
   },
   "server": {
     "host": "0.0.0.0",

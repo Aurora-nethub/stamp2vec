@@ -52,14 +52,6 @@ class ConfidenceThresholds:
 class SimilaritySearchConfig:
     """相似度搜索配置"""
     default_top_k: int = 3
-    confidence_thresholds: Dict[str, float] = None
-
-    def __post_init__(self):
-        if self.confidence_thresholds is None:
-            self.confidence_thresholds = {
-                "high": 0.9,
-                "medium": 0.7
-            }
 
 
 @dataclass
@@ -187,10 +179,6 @@ class ConfigLoader:
         similarity_search_dict = config_dict.get("similarity_search", {})
         similarity_search = SimilaritySearchConfig(
             default_top_k=similarity_search_dict.get("default_top_k", 3),
-            confidence_thresholds=similarity_search_dict.get("confidence_thresholds", {
-                "high": 0.9,
-                "medium": 0.7
-            }),
         )
 
         logging_config = LoggingConfig(

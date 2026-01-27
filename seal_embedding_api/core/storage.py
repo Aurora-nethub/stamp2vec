@@ -5,6 +5,7 @@ Storage service for embeddings and metadata
 import os
 import json
 import pickle
+import threading
 from pathlib import Path
 from typing import Dict, Tuple, Optional
 import numpy as np
@@ -26,6 +27,7 @@ class Storage:
         self.embeddings_file = self.base_dir / "embeddings.pkl"
         self.metadata_file = self.base_dir / "metadata.json"
         self.crops_dir = self.base_dir / "crops"
+        self._lock = threading.Lock()
         
         # Create directories if not exist
         self.base_dir.mkdir(parents=True, exist_ok=True)
@@ -75,39 +77,45 @@ class Storage:
             doc_id: Document ID for association
             crop_path: Path to cropped image (relative to base_dir)
         """
-        # Store embedding
-        self._embeddings[seal_id] = embedding.copy()
-        
-        # Store metadata
-        self._metadata[seal_id] = {
-            "doc_id": doc_id,
-            "crop_path": crop_path or "",
-            "timestamp": self._get_timestamp()
-        }
-        
-        # Persist to disk
-        self._save_embeddings()
-        self._save_metadata()
+        with self._lock:
+            # Store embedding
+            self._embeddings[seal_id] = embedding.copy()
+
+            # Store metadata
+            self._metadata[seal_id] = {
+                "doc_id": doc_id,
+                "crop_path": crop_path or "",
+                "timestamp": self._get_timestamp()
+            }
+
+            # Persist to disk
+            self._save_embeddings()
+            self._save_metadata()
     
     def get_embedding(self, seal_id: str) -> Optional[np.ndarray]:
         """Get embedding by seal_id"""
-        return self._embeddings.get(seal_id)
+        with self._lock:
+            return self._embeddings.get(seal_id)
     
     def list_all_embeddings(self) -> Tuple[Dict[str, np.ndarray], Dict[str, dict]]:
         """Return all embeddings and metadata"""
-        return self._embeddings.copy(), self._metadata.copy()
+        with self._lock:
+            return self._embeddings.copy(), self._metadata.copy()
     
     def get_metadata(self, seal_id: str) -> Optional[dict]:
         """Get metadata for a seal"""
-        return self._metadata.get(seal_id)
+        with self._lock:
+            return self._metadata.get(seal_id)
     
     def count_embeddings(self) -> int:
         """Get total number of stored embeddings"""
-        return len(self._embeddings)
+        with self._lock:
+            return len(self._embeddings)
     
     def seal_exists(self, seal_id: str) -> bool:
         """Check if a seal exists in database"""
-        return seal_id in self._embeddings
+        with self._lock:
+            return seal_id in self._embeddings
     
     @staticmethod
     def _get_timestamp() -> str:

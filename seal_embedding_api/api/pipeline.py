@@ -89,7 +89,7 @@ async def _ingest_images(
     for seal_idx, (seal, emb) in enumerate(zip(all_seals, embeddings)):
         seal_id = f"{doc_id}_seal_{seal_idx}"
         try:
-            storage.save_embedding(seal_id, emb, doc_id)
+            storage.save_embedding(seal_id, emb, doc_id, crop_path=crop_path)
 
             crop_path = None
             if save_crops:

@@ -2,7 +2,7 @@
 
 Base URL: http://localhost:8000
 
-All responses are JSON.
+All responses are JSON. Thresholds/confidence filtering is not used.
 
 ## 1) Health
 GET `/health`
@@ -130,4 +130,3 @@ Response:
 Notes:
 - If `image_b64` is provided, search runs detection and uses the largest detected seal.
 - If the database is empty, returns `top_1 = null` and `top_3 = []`.
-
