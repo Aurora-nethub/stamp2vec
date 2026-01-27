@@ -223,7 +223,97 @@ async def search_similar(request: SimilaritySearchRequest, fastapi_request: Requ
     """
     request_id = str(uuid.uuid4())[:8]
     logger.info(f"[{request_id}] 开始 search")
-    
-    # TODO: Implement
-    raise HTTPException(status_code=501, detail="Not implemented")
+
+    try:
+        app_state = fastapi_request.app.state
+        detection_service = app_state.detection_service
+        embedding_service = app_state.embedding_service
+        storage = app_state.storage
+        similarity_service = app_state.similarity_service
+
+        if not all([detection_service, embedding_service, storage, similarity_service]):
+            logger.error(f"[{request_id}] 服务未初始化")
+            raise HTTPException(status_code=500, detail="Services not initialized")
+
+        query_seal_id = request.query_seal_id
+        query_embedding = None
+
+        if request.image_b64:
+            logger.debug(f"[{request_id}] 解码 base64 查询图像...")
+            try:
+                image_data = base64.b64decode(request.image_b64)
+                image = Image.open(io.BytesIO(image_data)).convert("RGB")
+            except Exception as e:
+                logger.error(f"[{request_id}] 图像解码失败: {e}")
+                raise HTTPException(status_code=400, detail=f"Failed to decode image: {e}")
+
+            logger.info(f"[{request_id}] 开始检测查询印章...")
+            seals = await detection_service.detect_seals([image])
+            if len(seals) == 0:
+                logger.warning(f"[{request_id}] 查询图像未检测到印章")
+                raise HTTPException(status_code=400, detail="No seals detected in query image")
+
+            query_seal = max(seals, key=lambda s: s.size[0] * s.size[1])
+            query_embedding = await embedding_service.extract_embedding(query_seal)
+            query_seal_id = query_seal_id or "query_image"
+        else:
+            query_embedding = storage.get_embedding(query_seal_id)
+            if query_embedding is None:
+                logger.warning(f"[{request_id}] 未找到查询 seal_id: {query_seal_id}")
+                raise HTTPException(status_code=404, detail="Query seal_id not found")
+
+        embeddings, metadata = storage.list_all_embeddings()
+        total_in_database = len(embeddings)
+        if total_in_database == 0:
+            return SimilaritySearchResponse(
+                query_seal_id=query_seal_id,
+                top_1=None,
+                top_3=[],
+                total_in_database=0,
+                returned_count=0,
+                status="success",
+            )
+
+        top_k = max(request.top_k, 3)
+        results = similarity_service.compute_similarity(
+            query_embedding=query_embedding,
+            candidate_embeddings=embeddings,
+            top_k=top_k,
+        )
+
+        matches = []
+        for idx, item in enumerate(results):
+            seal_id = item["seal_id"]
+            doc_id = ""
+            crop_path = None
+            meta = metadata.get(seal_id)
+            if meta:
+                doc_id = meta.get("doc_id", "")
+                crop_path = meta.get("crop_path") or None
+            matches.append(
+                SimilarityMatch(
+                    seal_id=seal_id,
+                    doc_id=doc_id,
+                    similarity_score=item["similarity"],
+                    rank=idx + 1,
+                    crop_path=crop_path,
+                )
+            )
+
+        top_1 = matches[0] if matches else None
+        top_3 = matches[:3]
+
+        return SimilaritySearchResponse(
+            query_seal_id=query_seal_id,
+            top_1=top_1,
+            top_3=top_3,
+            total_in_database=total_in_database,
+            returned_count=len(matches),
+            status="success",
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[{request_id}] search 发生错误: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Search failed: {e}")
 

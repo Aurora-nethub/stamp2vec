@@ -6,12 +6,24 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
+class VerifySummary(BaseModel):
+    """Lightweight verification summary"""
+    query_count: int
+    candidate_count: int
+    top1_avg: float
+    top1_min: float
+    top1_max: float
+    duration_ms: int
+    cached: bool
+
+
 class HealthCheckResponse(BaseModel):
     """Health check response"""
     status: str = Field(..., description="Status: 'healthy' or 'unhealthy'")
     model_loaded: bool = Field(..., description="Whether the model is loaded")
     embedding_dim: int = Field(..., description="Embedding dimension")
     message: str = Field(..., description="Status message")
+    verify: Optional[VerifySummary] = None
 
 
 class EmbeddingMetadata(BaseModel):
@@ -43,6 +55,7 @@ class SimilarityMatch(BaseModel):
     doc_id: str
     similarity_score: float
     rank: int
+    crop_path: Optional[str] = None
 
 
 class SimilaritySearchRequest(BaseModel):
@@ -63,7 +76,8 @@ class SimilaritySearchRequest(BaseModel):
 class SimilaritySearchResponse(BaseModel):
     """Response from similarity search"""
     query_seal_id: str
-    matches: List[SimilarityMatch]
+    top_1: Optional[SimilarityMatch]
+    top_3: List[SimilarityMatch]
     total_in_database: int
     returned_count: int
     status: str = "success"
