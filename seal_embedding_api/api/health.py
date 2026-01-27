@@ -13,7 +13,7 @@ import numpy as np
 
 from ..models import HealthCheckResponse, VerifySummary
 from ..config_loader import ConfigLoader
-from train.model import SealEmbeddingNet
+from seal_embedding_api.core.seal_model import SealEmbeddingNet
 from ..core.embedding_service import EmbeddingService
 from ..core.detection_service import DetectionService
 from ..core.storage import Storage

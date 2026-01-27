@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
-from train.model import SealEmbeddingNet
+from seal_embedding_api.core.seal_model import SealEmbeddingNet
 from seal_embedding_api.core.embedding_service import EmbeddingService
 from seal_embedding_api.core.detection_service import DetectionService
 from seal_embedding_api.core.storage import Storage
