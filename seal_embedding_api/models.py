@@ -22,26 +22,15 @@ class EmbeddingMetadata(BaseModel):
     image_crop_saved: bool
 
 
-class PipelineRequest(BaseModel):
-    """Request for detect_and_embed pipeline"""
-    images: List[str] = Field(default_factory=list, description="Base64-encoded images")
-    image: Optional[str] = Field(None, description="Base64-encoded image (backward compat)")
+class IngestRequest(BaseModel):
+    """Request for ingest_base64"""
+    images_b64: List[str] = Field(..., description="Base64-encoded images")
     doc_id: str = Field(..., description="Document ID for association")
     save_crops: bool = Field(default=True, description="Whether to save cropped seal images")
 
-    class Config:
-        validate_assignment = True
 
-    def __init__(self, **data):
-        super().__init__(**data)
-        if not self.images and self.image:
-            self.images = [self.image]
-        if not self.images:
-            raise ValueError("Either 'images' or 'image' must be provided")
-
-
-class PipelineResponse(BaseModel):
-    """Response from detect_and_embed pipeline"""
+class IngestResponse(BaseModel):
+    """Response from ingest endpoints"""
     doc_id: str
     seals_detected: int
     embeddings_stored: List[EmbeddingMetadata]
@@ -58,7 +47,7 @@ class SimilarityMatch(BaseModel):
 
 class SimilaritySearchRequest(BaseModel):
     """Request for similarity search"""
-    image: Optional[str] = Field(None, description="Base64-encoded image (for new image search)")
+    image_b64: Optional[str] = Field(None, description="Base64-encoded image (for new image search)")
     query_seal_id: Optional[str] = Field(None, description="Existing seal ID to search from database")
     top_k: int = Field(default=3, description="Number of top matches to return")
 
@@ -67,8 +56,8 @@ class SimilaritySearchRequest(BaseModel):
 
     def __init__(self, **data):
         super().__init__(**data)
-        if not self.image and not self.query_seal_id:
-            raise ValueError("Either 'image' or 'query_seal_id' must be provided")
+        if not self.image_b64 and not self.query_seal_id:
+            raise ValueError("Either 'image_b64' or 'query_seal_id' must be provided")
 
 
 class SimilaritySearchResponse(BaseModel):
