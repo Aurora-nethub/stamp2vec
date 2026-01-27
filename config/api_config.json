@@ -18,7 +18,7 @@
     "default_top_k": 3,
     "confidence_thresholds": {
       "high": 0.9,
-      "medium": 0.7
+      "medium": 0.5
     }
   },
   "server": {
@@ -26,5 +26,9 @@
     "port": 8000,
     "reload": false,
     "log_level": "info"
+  },
+  "logging": {
+    "level": "INFO",
+    "dir": "logs"
   }
 }

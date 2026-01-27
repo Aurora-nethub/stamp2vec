@@ -24,9 +24,20 @@ class EmbeddingMetadata(BaseModel):
 
 class PipelineRequest(BaseModel):
     """Request for detect_and_embed pipeline"""
-    image: str = Field(..., description="Base64-encoded image")
+    images: List[str] = Field(default_factory=list, description="Base64-encoded images")
+    image: Optional[str] = Field(None, description="Base64-encoded image (backward compat)")
     doc_id: str = Field(..., description="Document ID for association")
     save_crops: bool = Field(default=True, description="Whether to save cropped seal images")
+
+    class Config:
+        validate_assignment = True
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        if not self.images and self.image:
+            self.images = [self.image]
+        if not self.images:
+            raise ValueError("Either 'images' or 'image' must be provided")
 
 
 class PipelineResponse(BaseModel):
