@@ -3,6 +3,7 @@ Health check endpoint
 """
 
 import time
+import random
 from pathlib import Path
 from typing import List
 from fastapi import APIRouter, Request, HTTPException
@@ -24,9 +25,24 @@ def _list_images(directory: Path) -> List[Path]:
     return sorted([p for p in directory.iterdir() if p.suffix.lower() in _IMAGE_EXTS])
 
 
-async def _run_verify(embedding_service, query_dir: Path, candidate_dir: Path, max_images: int):
-    query_files = _list_images(query_dir)[:max_images]
-    candidate_files = _list_images(candidate_dir)[:max_images]
+def _sample_files(files: List[Path], max_images: int, random_sample: bool) -> List[Path]:
+    if max_images <= 0 or max_images >= len(files):
+        return files
+    if random_sample:
+        return random.sample(files, max_images)
+    return files[:max_images]
+
+
+async def _run_verify(
+    detection_service,
+    embedding_service,
+    query_dir: Path,
+    candidate_dir: Path,
+    max_images: int,
+    random_sample: bool,
+):
+    query_files = _sample_files(_list_images(query_dir), max_images, random_sample)
+    candidate_files = _sample_files(_list_images(candidate_dir), max_images, random_sample)
 
     if not query_files or not candidate_files:
         raise HTTPException(status_code=400, detail="Verification data not found")
@@ -34,8 +50,14 @@ async def _run_verify(embedding_service, query_dir: Path, candidate_dir: Path, m
     query_images = [Image.open(p).convert("RGB") for p in query_files]
     candidate_images = [Image.open(p).convert("RGB") for p in candidate_files]
 
-    q_emb = await embedding_service.extract_embeddings_batch(query_images)
-    c_emb = await embedding_service.extract_embeddings_batch(candidate_images)
+    query_seals = await detection_service.detect_seals(query_images)
+    candidate_seals = await detection_service.detect_seals(candidate_images)
+
+    if not query_seals or not candidate_seals:
+        raise HTTPException(status_code=400, detail="No seals detected for verification")
+
+    q_emb = await embedding_service.extract_embeddings_batch(query_seals)
+    c_emb = await embedding_service.extract_embeddings_batch(candidate_seals)
 
     if q_emb.size == 0 or c_emb.size == 0:
         raise HTTPException(status_code=500, detail="Failed to extract embeddings")
@@ -46,6 +68,8 @@ async def _run_verify(embedding_service, query_dir: Path, candidate_dir: Path, m
     return {
         "query_count": len(query_files),
         "candidate_count": len(candidate_files),
+        "query_detected": len(query_seals),
+        "candidate_detected": len(candidate_seals),
         "top1_avg": float(np.mean(top1_scores)),
         "top1_min": float(np.min(top1_scores)),
         "top1_max": float(np.max(top1_scores)),
@@ -57,6 +81,7 @@ async def health_check(
     fastapi_request: Request,
     verify: bool = False,
     max_images: int = 3,
+    random_sample: bool = True,
     force: bool = False,
     verify_ttl_sec: int = 300,
 ):
@@ -66,13 +91,14 @@ async def health_check(
     try:
         app_state = fastapi_request.app.state
         embedding_service = app_state.embedding_service
+        detection_service = app_state.detection_service
 
-        if embedding_service is None:
+        if embedding_service is None or detection_service is None:
             return HealthCheckResponse(
                 status="unhealthy",
                 model_loaded=False,
                 embedding_dim=768,
-                message="Embedding service not initialized",
+                message="Services not initialized",
             )
 
         response = HealthCheckResponse(
@@ -93,10 +119,12 @@ async def health_check(
 
         start = time.time()
         summary = await _run_verify(
+            detection_service=detection_service,
             embedding_service=embedding_service,
             query_dir=Path("data/query"),
             candidate_dir=Path("data/candidate"),
             max_images=max_images,
+            random_sample=random_sample,
         )
         duration_ms = int((time.time() - start) * 1000)
 

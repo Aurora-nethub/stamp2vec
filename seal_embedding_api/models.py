@@ -10,6 +10,8 @@ class VerifySummary(BaseModel):
     """Lightweight verification summary"""
     query_count: int
     candidate_count: int
+    query_detected: int
+    candidate_detected: int
     top1_avg: float
     top1_min: float
     top1_max: float
