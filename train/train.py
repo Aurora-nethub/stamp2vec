@@ -15,8 +15,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from tqdm import tqdm
 
-from dataset import get_dataloaders
-from model import SealEmbeddingNet
+from .dataset import get_dataloaders
+from .model import SealEmbeddingNet
 
 
 # ---------------------------

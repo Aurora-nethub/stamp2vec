@@ -17,7 +17,7 @@ from typing import Any, Dict
 
 import torch
 
-from model import SealEmbeddingNet
+from .model import SealEmbeddingNet
 
 
 # ---------------------------

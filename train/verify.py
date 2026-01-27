@@ -13,7 +13,7 @@ import pandas as pd
 from torchvision import transforms
 import torchvision.transforms.functional as TF
 
-from model import SealEmbeddingNet
+from .model import SealEmbeddingNet
 
 
 class SquarePad:
@@ -108,8 +108,8 @@ def main():
 
     ap.add_argument(
         "--pkg",
-        default="exported/seal_pkg_v1",
-        help="Exported package directory (default: exported/seal_pkg_v1)"
+        default="models/seal_pkg_v1",
+        help="Exported package directory (default: models/seal_pkg_v1)"
     )
 
     ap.add_argument("--batch-size", type=int, default=32)
