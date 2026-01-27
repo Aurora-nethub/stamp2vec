@@ -35,5 +35,5 @@
   "inference": {
     "load_backbone_weights": false
   },
-  "source_ckpt": "/home/zhangjunjie/stamp_cmp/checkpoints_768_best/latest.pth"
+  "source_ckpt": "/home/zhangjunjie/stamp_cmp/checkpoints_768/best_model.pth"
 }

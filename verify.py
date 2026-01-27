@@ -103,8 +103,8 @@ def extract_feats(
 def main():
     ap = argparse.ArgumentParser()
 
-    ap.add_argument("--query-dir", default=os.path.expanduser("~/dinov3/query"))
-    ap.add_argument("--cand-dir", default=os.path.expanduser("~/dinov3/candidate"))
+    ap.add_argument("--query-dir", default=os.path.expanduser("./data/query"))
+    ap.add_argument("--cand-dir", default=os.path.expanduser("./data/candidate"))
 
     ap.add_argument(
         "--pkg",

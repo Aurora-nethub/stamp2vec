@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-01-26T17:09:03",
+  "created_at": "2026-01-27T23:05:06",
   "host": {
     "platform": "Linux-5.15.0-139-generic-x86_64-with-glibc2.31",
     "python": "3.12.12"
@@ -14,17 +14,17 @@
   "timm": "1.0.24",
   "files": {
     "model.pt": {
-      "sha256": "adc052f181773ad536665e7b01be50554ce9b7d974c29e6b923d16282ae92576",
+      "sha256": "d58445330089a4ff52adcaf5070bc85389094ab2cd1812afa2e6475debb0e6cd",
       "bytes": 90658079
     },
     "config.json": {
-      "sha256": "87b1b03611d84c1334bea749bafe0e33ce027fa7ae826ce325199160a5f5b921",
-      "bytes": 771
+      "sha256": "2747436b6ea4a7eeedb343ce043f4f6256c75d221362edbf06a4438534437809",
+      "bytes": 770
     }
   },
   "checkpoint_source": {
-    "path": "/home/zhangjunjie/stamp_cmp/checkpoints_768_best/latest.pth",
-    "sha256": "a28171bbd1f21f27524dbbc6e4133865ac45ab4147196f73e2001c3514ddf678"
+    "path": "/home/zhangjunjie/stamp_cmp/checkpoints_768/best_model.pth",
+    "sha256": "48ee65dafad2e400287d105903c34be00b160bc0476464bc74d753cb61246546"
   },
   "state_dict_report": {
     "missing_keys_on_load_ckpt": 0,
