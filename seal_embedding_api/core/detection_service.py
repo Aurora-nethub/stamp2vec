@@ -16,7 +16,6 @@ from seal_embedding_api.config_loader import DetectionModelConfig
 
 logger = get_logger(__name__)
 
-
 class DetectionService:
     """检测服务类 - 负责印章检测"""
 
@@ -35,8 +34,7 @@ class DetectionService:
         """初始化 LayoutDetection 模型（一次性加载，驻留内存）"""
         try:
             logger.info(f"初始化 LayoutDetection 模型: {self.config.model_name}")
-            
-            # 抑制 PaddleOCR 的日志噪声
+
             with _suppress_host_check_logs():
                 self.model = LayoutDetection(model_name=self.config.model_name)
             
