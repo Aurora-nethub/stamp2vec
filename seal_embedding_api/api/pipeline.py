@@ -225,7 +225,7 @@ async def search_similar(request: SimilaritySearchRequest, fastapi_request: Requ
                 raise HTTPException(status_code=404, detail="Query seal_id not found")
 
         logger.info(f"[{request_id}] 搜索相似印章...")
-        top_k = max(request.top_k, 1)
+        top_k = request.top_k
         
         search_results = milvus_service.search_similar(
             query_embedding=query_embedding,

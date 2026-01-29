@@ -59,6 +59,12 @@ class SimilaritySearchRequest(BaseModel):
     top_k: int = 3
 
     @model_validator(mode="after")
+    def _check_top_k(self):
+        if self.top_k < 1:
+            raise ValueError("top_k must be >= 1")
+        return self
+
+    @model_validator(mode="after")
     def _check_query(self):
         if not self.image_b64 and not self.query_seal_id:
             raise ValueError("Either 'image_b64' or 'query_seal_id' must be provided")
