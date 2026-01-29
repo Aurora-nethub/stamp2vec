@@ -9,4 +9,14 @@ if not exist "%ROOT_DIR%.venv\\Scripts\\activate.bat" (
 )
 
 call "%ROOT_DIR%.venv\\Scripts\\activate.bat"
+
+echo Initializing Milvus database...
+python "%ROOT_DIR%scripts\\init_milvus.py"
+
+if %ERRORLEVEL% neq 0 (
+  echo Milvus initialization failed
+  exit /b 1
+)
+
+echo Starting Seal Embedding API...
 python "%ROOT_DIR%main.py"

@@ -1,7 +1,7 @@
 Stamp2Vec API
 =============
 
-FastAPI service for seal detection, embedding ingestion, and similarity search.
+FastAPI service for seal detection, embedding ingestion, similarity search, and deletion.
 
 Quick Start
 -----------
@@ -26,8 +26,12 @@ Endpoints
 ---------
 - `GET /health`
 - `POST /seals/ingest_base64`
-- `POST /seals/ingest_upload`
 - `POST /seals/search`
+- `POST /seals/delete`
+
+Notes
+-----
+Current input format is base64 images only.
 
 Repository Layout
 -----------------
@@ -48,5 +52,4 @@ python verify.py \
 	--query-dir data/query \
 	--cand-dir  data/candidate \
 	--pkg models/seal_pkg_v1 \
-	--batch-size 32
 ```

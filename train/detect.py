@@ -51,22 +51,25 @@ def _suppress_host_check_logs():
         logging.disable(logging.NOTSET)
 
 
-def crop_seals(image_path: str, out_dir: str = "output", model_name: str = "PP-DocLayout-L") -> int:
+def crop_seals(image_path: str, out_dir: str = "output", model_name: str = "PP-DocLayout-L"):
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)
 
-    with _suppress_host_check_logs():
-        from paddleocr import LayoutDetection  # local import to keep logs silenced
+    from paddleocr import LayoutDetection
 
-        model = LayoutDetection(model_name=model_name)
-        results = model.predict(image_path, batch_size=1)
+    model = LayoutDetection(model_name=model_name)
+    results = model.predict(image_path, batch_size=1)
 
     img = Image.open(image_path).convert("RGB")
     stem = Path(image_path).stem
 
     crop_count = 0
+    debug_boxes = []
     for res in results:
-        for box in _extract_seal_boxes(res):
+        seal_boxes = _extract_seal_boxes(res)
+        debug_boxes.extend(seal_boxes)
+        
+        for box in seal_boxes:
             coord = box.get("coordinate") or box.get("bbox") or box.get("box")
             if not coord or len(coord) != 4:
                 continue
@@ -76,10 +79,15 @@ def crop_seals(image_path: str, out_dir: str = "output", model_name: str = "PP-D
             crop.save(crop_path)
             crop_count += 1
 
-    return crop_count
+    return crop_count, debug_boxes
 
 
 if __name__ == "__main__":
-    with _suppress_host_check_logs():
-        cnt = crop_seals("data/seal_imgs/huishan_ano.png", out_dir="output")
-    print(f"Saved {cnt} seal crops to output")
+    cnt, boxes = crop_seals(r"data\candidate\chengdu.png", out_dir="output")
+    
+    print(f"\nSaved {cnt} seal crops to output")
+    if boxes:
+        print(f"\n检测到 {len(boxes)} 个印章")
+        print(f"第一个 box 的字段:")
+        for key, value in boxes[0].items():
+            print(f"  {key}: {value}")
