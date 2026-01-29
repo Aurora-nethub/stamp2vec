@@ -1,7 +1,8 @@
 {
   "embedding_model": {
     "pkg_dir": "models/seal_pkg_v1",
-    "device": "cpu"
+    "device": "cpu",
+    "platform": "cpu"
   },
   "detection_model": {
     "model_name": "PP-DocLayout-L",
@@ -11,7 +12,7 @@
     "embedding_batch_size": 32
   },
   "milvus": {
-    "db_path": "database/milvus",
+    "db_path": "/data/milvus/seals.db",
     "collection_name": "seals",
     "dimension": 768
   },

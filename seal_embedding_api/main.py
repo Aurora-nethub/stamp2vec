@@ -24,7 +24,7 @@ def init_app() -> FastAPI:
 
             config = ConfigLoader.load("config/api_config.json")
 
-            device = torch.device("cpu")
+            device = torch.device(config.embedding_model.device)
             logger.info(f"Using device: {device}")
 
             model, cfg = SealEmbeddingNet.from_package(

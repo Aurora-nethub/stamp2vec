@@ -94,8 +94,11 @@ async def _run_verify(
     query_images = [Image.open(p).convert("RGB") for p in query_files]
     candidate_images = [Image.open(p).convert("RGB") for p in candidate_files]
 
-    query_seals = await detection_service.detect_seals(query_images)
-    candidate_seals = await detection_service.detect_seals(candidate_images)
+    query_seals_all = await detection_service.detect_seals(query_images)
+    candidate_seals_all = await detection_service.detect_seals(candidate_images)
+
+    query_seals = [seal for seal in query_seals_all if seal is not None]
+    candidate_seals = [seal for seal in candidate_seals_all if seal is not None]
 
     if not query_seals or not candidate_seals:
         raise HTTPException(status_code=400, detail="No seals detected for verification")
@@ -151,8 +154,9 @@ async def health_check(
                 milvus_loaded = False
                 milvus_collection = "error"
 
+        status = "healthy" if milvus_loaded else "unhealthy"
         response = HealthCheckResponse(
-            status="healthy",
+            status=status,
             model_loaded=True,
             embedding_dim=768,
             milvus_loaded=milvus_loaded,

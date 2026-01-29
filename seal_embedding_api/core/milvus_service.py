@@ -10,12 +10,15 @@ logger = get_logger(__name__)
 
 class MilvusService:
     def __init__(self, db_path: str, collection_name: str = "seals"):
-        if not Path(db_path).parent.exists():
-            Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-        
-        self.client = MilvusClient(uri=db_path)
+        db_file = Path(db_path)
+        if not db_file.parent.exists():
+            raise FileNotFoundError(f"Milvus db directory not found: {db_file.parent}")
+        if not db_file.exists():
+            raise FileNotFoundError(f"Milvus db file not found: {db_file}")
+
+        self.client = MilvusClient(uri=str(db_file))
         self.collection_name = collection_name
-        logger.info(f"Milvus service initialized: {db_path}, collection: {collection_name}")
+        logger.info(f"Milvus service initialized: {db_file}, collection: {collection_name}")
     
     def insert_embedding(
         self,

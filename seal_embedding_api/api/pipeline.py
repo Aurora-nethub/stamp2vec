@@ -210,11 +210,12 @@ async def search_similar(request: SimilaritySearchRequest, fastapi_request: Requ
 
             logger.info(f"[{request_id}] 开始检测查询印章...")
             seals = await detection_service.detect_seals([image])
-            if len(seals) == 0:
+            valid_seals = [seal for seal in seals if seal is not None]
+            if not valid_seals:
                 logger.warning(f"[{request_id}] 查询图像未检测到印章")
                 raise HTTPException(status_code=400, detail="No seals detected in query image")
 
-            query_seal = max(seals, key=lambda s: s.size[0] * s.size[1])
+            query_seal = max(valid_seals, key=lambda s: s.size[0] * s.size[1])
             query_embedding = await embedding_service.extract_embedding(query_seal)
             query_seal_id = query_seal_id or "query_image"
         else:
@@ -224,7 +225,7 @@ async def search_similar(request: SimilaritySearchRequest, fastapi_request: Requ
                 raise HTTPException(status_code=404, detail="Query seal_id not found")
 
         logger.info(f"[{request_id}] 搜索相似印章...")
-        top_k = max(request.top_k, 3)
+        top_k = max(request.top_k, 1)
         
         search_results = milvus_service.search_similar(
             query_embedding=query_embedding,

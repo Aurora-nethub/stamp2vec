@@ -8,12 +8,7 @@ Quick Start
 1) Create and activate virtual environment in `.venv`.
 2) Run the server:
 
-Windows:
-```
-run.bat
-```
-
-macOS/Linux:
+Linux:
 ```
 ./run.sh
 ```
@@ -32,6 +27,7 @@ Endpoints
 Notes
 -----
 Current input format is base64 images only.
+Milvus Lite database path is configured in `config/api_config.json` (default: `/data/milvus/seals.db`).
 
 Repository Layout
 -----------------

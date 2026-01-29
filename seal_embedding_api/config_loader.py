@@ -12,6 +12,7 @@ logger = get_logger(__name__)
 class EmbeddingModelConfig:
     pkg_dir: str
     device: str = "cpu"
+    platform: str = "cpu"
 
 
 @dataclass
@@ -87,7 +88,9 @@ class ConfigLoader:
                 f"embedding_batch_size must be between 1 and 256, got {batch_size}"
             )
 
-        device = config_dict.get("embedding_model", {}).get("device", "cpu")
+        device = config_dict.get("embedding_model", {}).get("device")
+        if not device:
+            device = config_dict.get("embedding_model", {}).get("platform", "cpu")
         if device not in ["cpu", "cuda"]:
             raise ValueError(f"device must be 'cpu' or 'cuda', got {device}")
 
@@ -95,7 +98,11 @@ class ConfigLoader:
     def _build_config(config_dict: Dict[str, Any]) -> APIConfig:
         embedding_model = EmbeddingModelConfig(
             pkg_dir=config_dict["embedding_model"]["pkg_dir"],
-            device=config_dict["embedding_model"].get("device", "cpu"),
+            device=config_dict["embedding_model"].get(
+                "device",
+                config_dict["embedding_model"].get("platform", "cpu"),
+            ),
+            platform=config_dict["embedding_model"].get("platform", "cpu"),
         )
 
         detection_model = DetectionModelConfig(
