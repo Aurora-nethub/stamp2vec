@@ -1,7 +1,4 @@
-"""
-Health check endpoint
-"""
-
+import os
 import time
 import random
 import threading
@@ -16,8 +13,7 @@ from ..config_loader import ConfigLoader
 from seal_embedding_api.core.seal_model import SealEmbeddingNet
 from ..core.embedding_service import EmbeddingService
 from ..core.detection_service import DetectionService
-from ..core.storage import Storage
-from ..core.similarity_service import SimilarityService
+from ..core.milvus_service import MilvusService
 
 
 router = APIRouter()
@@ -67,8 +63,16 @@ def _reinit_services(app_state) -> None:
             batch_size=config.batch_processing.embedding_batch_size,
         )
         app_state.detection_service = DetectionService(config.detection_model)
-        app_state.storage = Storage(base_dir=config.storage.base_dir)
-        app_state.similarity_service = SimilarityService()
+        
+        milvus_db_path = config.milvus.db_path
+        if not os.path.isabs(milvus_db_path):
+            milvus_db_path = os.path.join(os.getcwd(), milvus_db_path)
+        
+        app_state.milvus_service = MilvusService(
+            db_path=milvus_db_path,
+            collection_name=config.milvus.collection_name,
+        )
+        
         if hasattr(app_state, "health_verify_cache"):
             delattr(app_state, "health_verify_cache")
 
@@ -125,21 +129,35 @@ async def health_check(
     force: bool = False,
     verify_ttl_sec: int = 300,
 ):
-    """
-    Health check endpoint - tests if model is loaded and can run embedding
-    """
     async def _run_once():
         app_state = fastapi_request.app.state
         embedding_service = app_state.embedding_service
         detection_service = app_state.detection_service
+        milvus_service = app_state.milvus_service
 
         if embedding_service is None or detection_service is None:
             raise RuntimeError("Services not initialized")
+
+        milvus_loaded = False
+        milvus_collection = "unknown"
+        milvus_count = 0
+        
+        if milvus_service:
+            try:
+                milvus_loaded = True
+                milvus_collection = milvus_service.collection_name
+                milvus_count = milvus_service.count()
+            except Exception as e:
+                milvus_loaded = False
+                milvus_collection = "error"
 
         response = HealthCheckResponse(
             status="healthy",
             model_loaded=True,
             embedding_dim=768,
+            milvus_loaded=milvus_loaded,
+            milvus_collection=milvus_collection,
+            milvus_count=milvus_count,
             message="Model is ready",
         )
 
@@ -186,5 +204,8 @@ async def health_check(
                 status="unhealthy",
                 model_loaded=False,
                 embedding_dim=768,
+                milvus_loaded=False,
+                milvus_collection="unknown",
+                milvus_count=0,
                 message=str(e),
             )

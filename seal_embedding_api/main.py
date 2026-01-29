@@ -1,8 +1,5 @@
-"""
-Main FastAPI application for Seal Embedding Service
-"""
-
 from contextlib import asynccontextmanager
+import os
 import torch
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,31 +8,25 @@ import uvicorn
 from seal_embedding_api.core.seal_model import SealEmbeddingNet
 from seal_embedding_api.core.embedding_service import EmbeddingService
 from seal_embedding_api.core.detection_service import DetectionService
-from seal_embedding_api.core.storage import Storage
-from seal_embedding_api.core.similarity_service import SimilarityService
+from seal_embedding_api.core.milvus_service import MilvusService
 from seal_embedding_api.config_loader import ConfigLoader
 from seal_embedding_api.logger_config import get_logger
 from seal_embedding_api.api import health, pipeline
 
 
 def init_app() -> FastAPI:
-    """Initialize FastAPI application"""
     logger = get_logger(__name__)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        """Initialize and cleanup resources"""
         try:
             logger.info("Initializing Seal Embedding API...")
 
-            # Load config
             config = ConfigLoader.load("config/api_config.json")
 
-            # Determine device (CPU only)
             device = torch.device("cpu")
             logger.info(f"Using device: {device}")
 
-            # Load model using from_package method
             model, cfg = SealEmbeddingNet.from_package(
                 pkg_dir=config.embedding_model.pkg_dir,
                 device=device,
@@ -46,7 +37,6 @@ def init_app() -> FastAPI:
             app.state.config = config
             app.state.device = device
 
-            # Initialize services
             app.state.embedding_service = EmbeddingService(
                 model,
                 cfg,
@@ -54,8 +44,15 @@ def init_app() -> FastAPI:
                 batch_size=config.batch_processing.embedding_batch_size,
             )
             app.state.detection_service = DetectionService(config.detection_model)
-            app.state.storage = Storage(base_dir=config.storage.base_dir)
-            app.state.similarity_service = SimilarityService()
+
+            milvus_db_path = config.milvus.db_path
+            if not os.path.isabs(milvus_db_path):
+                milvus_db_path = os.path.join(os.getcwd(), milvus_db_path)
+            
+            app.state.milvus_service = MilvusService(
+                db_path=milvus_db_path,
+                collection_name=config.milvus.collection_name,
+            )
 
             logger.info("All services initialized successfully!")
             yield
@@ -72,7 +69,6 @@ def init_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # Add CORS middleware
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -81,29 +77,16 @@ def init_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Include routers
     app.include_router(health.router)
     app.include_router(pipeline.router)
-
-    @app.get("/")
-    async def root():
-        """Root endpoint"""
-        return {
-            "service": "Seal Embedding API",
-            "status": "running",
-            "version": "0.1.0"
-        }
 
     return app
 
 
-# Create app instance
 app = init_app()
 
 
 if __name__ == "__main__":
-    
-    # Run server
     uvicorn.run(
         "seal_embedding_api.main:app",
         host="0.0.0.0",

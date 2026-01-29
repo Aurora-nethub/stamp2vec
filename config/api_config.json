@@ -8,11 +8,12 @@
     "batch_size": 1
   },
   "batch_processing": {
-    "embedding_batch_size": 32,
-    "max_concurrent_tasks": 4
+    "embedding_batch_size": 32
   },
-  "storage": {
-    "base_dir": "database/embeddings"
+  "milvus": {
+    "db_path": "database/milvus",
+    "collection_name": "seals",
+    "dimension": 768
   },
   "similarity_search": {
     "default_top_k": 3

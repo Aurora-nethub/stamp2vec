@@ -8,14 +8,6 @@ from timm.models import load_checkpoint
 
 
 class SealEmbeddingNet(nn.Module):
-    """
-    Embedding-only network for seal retrieval/verification.
-
-    - backbone: timm ViT (DINOv2 small by default)
-    - projector: MLP to embedding_dim
-    - output: L2-normalized embedding
-    """
-
     def __init__(
         self,
         embedding_dim: int = 512,
@@ -65,7 +57,6 @@ class SealEmbeddingNet(nn.Module):
             if verbose:
                 print("Skipping backbone weight load (structure only) because load_backbone_weights=False")
 
-        # freeze backbone
         if freeze_backbone:
             for p in self.backbone.parameters():
                 p.requires_grad = False
@@ -87,9 +78,9 @@ class SealEmbeddingNet(nn.Module):
             self.backbone.eval()
 
     def forward(self, x):
-        feat = self.backbone(x)             # [B, in_dim]
-        emb = self.projector(feat)          # [B, D]
-        emb = F.normalize(emb, p=2, dim=1)  # cosine space
+        feat = self.backbone(x)
+        emb = self.projector(feat)
+        emb = F.normalize(emb, p=2, dim=1)
         return emb
 
     @torch.no_grad()
@@ -97,7 +88,6 @@ class SealEmbeddingNet(nn.Module):
         self.eval()
         return self.forward(x)
 
-    # Config helpers for export/import
     def to_config(self, img_size: int = 518, mean=None, std=None) -> dict:
         if mean is None:
             mean = [0.485, 0.456, 0.406]
@@ -118,13 +108,6 @@ class SealEmbeddingNet(nn.Module):
 
     @staticmethod
     def from_package(pkg_dir: str, device: torch.device, verbose: bool = True):
-        """
-        Load model and config from an exported package directory without loading any pretrained backbone weights.
-        Expected layout:
-            pkg_dir/
-                config.json
-                model.pt
-        """
         cfg_path = os.path.join(pkg_dir, "config.json")
         w_path = os.path.join(pkg_dir, "model.pt")
 

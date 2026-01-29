@@ -1,13 +1,8 @@
-"""
-Pydantic models for API request/response
-"""
-
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, model_validator
 
 
 class VerifySummary(BaseModel):
-    """Lightweight verification summary"""
     query_count: int
     candidate_count: int
     query_detected: int
@@ -20,66 +15,73 @@ class VerifySummary(BaseModel):
 
 
 class HealthCheckResponse(BaseModel):
-    """Health check response"""
-    status: str = Field(..., description="Status: 'healthy' or 'unhealthy'")
-    model_loaded: bool = Field(..., description="Whether the model is loaded")
-    embedding_dim: int = Field(..., description="Embedding dimension")
-    message: str = Field(..., description="Status message")
+    status: str
+    model_loaded: bool
+    embedding_dim: int
+    milvus_loaded: bool
+    milvus_collection: str
+    milvus_count: int
+    message: str
     verify: Optional[VerifySummary] = None
 
 
 class EmbeddingMetadata(BaseModel):
-    """Metadata for a stored embedding"""
     seal_id: str
-    doc_id: str
     embedding_dim: int
-    image_crop_saved: bool
+    crop_image_b64: str
+
+
+class IngestItem(BaseModel):
+    image_b64: str
+    seal_id: str
 
 
 class IngestRequest(BaseModel):
-    """Request for ingest_base64"""
-    images_b64: List[str] = Field(..., description="Base64-encoded images")
-    doc_id: str = Field(..., description="Document ID for association")
-    save_crops: bool = Field(default=True, description="Whether to save cropped seal images")
+    items: List[IngestItem]
 
 
 class IngestResponse(BaseModel):
-    """Response from ingest endpoints"""
-    doc_id: str
     seals_detected: int
     embeddings_stored: List[EmbeddingMetadata]
     status: str = "success"
 
 
 class SimilarityMatch(BaseModel):
-    """A single similarity match result"""
     seal_id: str
-    doc_id: str
     similarity_score: float
     rank: int
-    crop_path: Optional[str] = None
+    image_base64: Optional[str] = None
 
 
 class SimilaritySearchRequest(BaseModel):
-    """Request for similarity search"""
-    image_b64: Optional[str] = Field(None, description="Base64-encoded image (for new image search)")
-    query_seal_id: Optional[str] = Field(None, description="Existing seal ID to search from database")
-    top_k: int = Field(default=3, description="Number of top matches to return")
+    image_b64: Optional[str] = None
+    query_seal_id: Optional[str] = None
+    top_k: int = 3
 
-    class Config:
-        validate_assignment = True
-
-    def __init__(self, **data):
-        super().__init__(**data)
+    @model_validator(mode="after")
+    def _check_query(self):
         if not self.image_b64 and not self.query_seal_id:
             raise ValueError("Either 'image_b64' or 'query_seal_id' must be provided")
+        return self
 
 
 class SimilaritySearchResponse(BaseModel):
-    """Response from similarity search"""
     query_seal_id: str
     top_1: Optional[SimilarityMatch]
     top_3: List[SimilarityMatch]
     total_in_database: int
     returned_count: int
+    image_base64: Optional[str] = None
+    status: str = "success"
+
+
+class DeleteRequest(BaseModel):
+    seal_ids: List[str]
+
+
+class DeleteResponse(BaseModel):
+    deleted_count: int
+    failed_count: int
+    deleted_ids: List[str]
+    failed_ids: List[str]
     status: str = "success"
