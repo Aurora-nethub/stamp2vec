@@ -6,11 +6,16 @@ RUN pip install --no-cache-dir uv
 
 COPY . /app
 
+ENV UV_INDEX_URL="https://mirrors.aliyun.com/pypi/simple/"
+ENV PIP_INDEX_URL="https://mirrors.aliyun.com/pypi/simple/"
+
 RUN if [ ! -f pyproject.toml ]; then uv init; fi \
     && uv sync
 
 ENV PATH="/app/.venv/bin:${PATH}"
 
 RUN /bin/bash -lc "source /app/.venv/bin/activate"
+
+RUN chmod +x /app/run.sh
 
 CMD ["/bin/bash", "-lc", "python -m scripts.init_model && python -m scripts.init_milvus && ./run.sh"]
