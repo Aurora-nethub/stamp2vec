@@ -126,14 +126,6 @@ Request body (image):
 }
 ```
 
-Request body (seal id):
-```json
-{
-  "query_seal_id": "uid_001",
-  "top_k": 3
-}
-```
-
 Response:
 ```json
 {
@@ -162,10 +154,9 @@ Response:
 Notes:
 - If `image_b64` is provided, search runs detection and uses the largest detected seal.
 - `image_base64` in response is the query image (not the matched crops).
-- If neither `image_b64` nor `query_seal_id` is provided, request validation fails (`422`).
+- If `image_b64` is missing, request validation fails (`422`).
 - If `top_k < 1`, request validation fails (`422`).
 - If `image_b64` is provided but no seals are detected, returns `400` with `detail="No seals detected in query image"`.
-- If `query_seal_id` does not exist, returns `404` with `detail="Query seal_id not found"`.
 
 ## 4) Delete (batch)
 POST `/seals/delete`

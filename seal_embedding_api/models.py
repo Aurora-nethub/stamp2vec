@@ -55,7 +55,6 @@ class SimilarityMatch(BaseModel):
 
 class SimilaritySearchRequest(BaseModel):
     image_b64: Optional[str] = None
-    query_seal_id: Optional[str] = None
     top_k: int = 3
 
     @model_validator(mode="after")
@@ -66,8 +65,8 @@ class SimilaritySearchRequest(BaseModel):
 
     @model_validator(mode="after")
     def _check_query(self):
-        if not self.image_b64 and not self.query_seal_id:
-            raise ValueError("Either 'image_b64' or 'query_seal_id' must be provided")
+        if not self.image_b64:
+            raise ValueError("image_b64 must be provided")
         return self
 
 
