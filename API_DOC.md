@@ -6,6 +6,18 @@ All responses are JSON. Thresholds/confidence filtering is not used.
 
 **Current input format: Only accepts base64-encoded images. File upload not currently supported.**
 
+## Common error responses
+- `400 Bad Request`: invalid input, missing fields, or no seals detected
+- `404 Not Found`: query_seal_id does not exist
+- `500 Internal Server Error`: service not initialized or unexpected errors
+
+Error response body (FastAPI default):
+```json
+{
+  "detail": "Error message"
+}
+```
+
 ## 1) Health
 GET `/health`
 
@@ -47,6 +59,8 @@ Notes:
 - `milvus_collection`: Name of the Milvus collection (e.g., "seals").
 - `milvus_count`: Total number of embeddings stored in the database.
 - If health fails, the service attempts one in-process reinit and retries once.
+- If `verify=true` and no images exist, returns `400` with `detail="Verification data not found"`.
+- If `verify=true` and no seals are detected, returns `400` with `detail="No seals detected for verification"`.
 
 ## 2) Ingest (base64)
 POST `/seals/ingest_base64`
@@ -96,6 +110,10 @@ Notes:
 - `embeddings_stored` only includes successfully detected and stored seals.
 - Stores only `id` (seal_id) and `vector` (embedding) in Milvus.
 - Returns `crop_image_b64` for each detected seal (cropped from original image).
+- If `items` is empty or missing, returns `400` with `detail="seal_ids is required"` or `detail="No images provided"`.
+- If any `image_b64` fails to decode, returns `400` with `detail="Failed to decode image: ..."` 
+- If no seals are detected for all images, returns `200` with `seals_detected=0` and empty `embeddings_stored`.
+- If Milvus insert fails, returns `500` with `detail="Failed to save embedding: ..."`
 
 ## 3) Search
 POST `/seals/search`
@@ -144,6 +162,10 @@ Response:
 Notes:
 - If `image_b64` is provided, search runs detection and uses the largest detected seal.
 - `image_base64` in response is the query image (not the matched crops).
+- If neither `image_b64` nor `query_seal_id` is provided, request validation fails (`422`).
+- If `top_k < 1`, request validation fails (`422`).
+- If `image_b64` is provided but no seals are detected, returns `400` with `detail="No seals detected in query image"`.
+- If `query_seal_id` does not exist, returns `404` with `detail="Query seal_id not found"`.
 
 ## 4) Delete (batch)
 POST `/seals/delete`
@@ -171,3 +193,4 @@ Notes:
 - Returns separate lists of succeeded and failed deletions.
 - `status` is "success" if all deleted, "partial_success" if some failed.
 - If the database is empty, returns `top_1 = null` and `top_3 = []`.
+- If `seal_ids` is empty, returns `400` with `detail="seal_ids cannot be empty"`.
