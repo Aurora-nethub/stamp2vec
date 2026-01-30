@@ -25,9 +25,21 @@ def _load_db_path() -> Path:
     return Path(db_path)
 
 
+def _load_sample_image() -> Image.Image:
+    """Load a real sample image from data/query or data/candidate."""
+    exts = (".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff")
+    for folder in (Path("data/query"), Path("data/candidate")):
+        if not folder.exists():
+            continue
+        for p in sorted(folder.iterdir()):
+            if p.suffix.lower() in exts:
+                return Image.open(p).convert("RGB")
+    pytest.skip("No sample images found in data/query or data/candidate")
+
+
 def _b64_image() -> str:
-    """Create a base64-encoded PNG image for integration."""
-    img = Image.new("RGB", (32, 32), color=(255, 0, 0))
+    """Create a base64-encoded image from real sample data."""
+    img = _load_sample_image()
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return base64.b64encode(buf.getvalue()).decode("utf-8")
@@ -41,18 +53,17 @@ def test_integration_flow():
         pytest.skip(f"Milvus db not found: {db_path}")
 
     app = init_app()
-    client = TestClient(app)
+    with TestClient(app) as client:
+        ingest_payload = {
+            "items": [
+                {"image_b64": _b64_image(), "seal_id": "it_uid_1"},
+            ]
+        }
+        resp = client.post("/seals/ingest_base64", json=ingest_payload)
+        assert resp.status_code == 200
 
-    ingest_payload = {
-        "items": [
-            {"image_b64": _b64_image(), "seal_id": "it_uid_1"},
-        ]
-    }
-    resp = client.post("/seals/ingest_base64", json=ingest_payload)
-    assert resp.status_code == 200
+        resp = client.post("/seals/search", json={"query_seal_id": "it_uid_1", "top_k": 1})
+        assert resp.status_code == 200
 
-    resp = client.post("/seals/search", json={"query_seal_id": "it_uid_1", "top_k": 1})
-    assert resp.status_code == 200
-
-    resp = client.post("/seals/delete", json={"seal_ids": ["it_uid_1"]})
-    assert resp.status_code == 200
+        resp = client.post("/seals/delete", json={"seal_ids": ["it_uid_1"]})
+        assert resp.status_code == 200

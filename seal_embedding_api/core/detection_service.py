@@ -1,5 +1,6 @@
 import asyncio
 from typing import List, Optional, Dict, Any
+import numpy as np
 from PIL import Image
 from paddleocr import LayoutDetection
 
@@ -71,12 +72,14 @@ class DetectionService:
             logger.debug(f"开始印章检测，处理 {batch_size} 个图像...")
             
             rgb_images = []
+            np_images = []
             for img in images:
                 if img.mode != "RGB":
                     img = img.convert("RGB")
                 rgb_images.append(img)
+                np_images.append(np.array(img))
             
-            results = self.model.predict(rgb_images, batch_size=batch_size)
+            results = self.model.predict(np_images, batch_size=batch_size)
             
             seals = []
             detected_count = 0
