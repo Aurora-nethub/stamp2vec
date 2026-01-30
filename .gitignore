@@ -19,3 +19,6 @@ stamps/
 # Runtime storage (生成的向量数据和图像)
 database/
 logs/
+
+# vscode settings
+.vscode/
