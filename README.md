@@ -10,7 +10,12 @@ Quick Start
 pip install uv
 uv sync
 ```
-2) Run the server:
+2) Initialize models and Milvus:
+```
+python -m scripts.init_model
+python -m scripts.init_milvus
+```
+3) Run the server:
 
 Linux:
 ```
