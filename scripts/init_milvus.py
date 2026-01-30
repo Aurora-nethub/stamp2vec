@@ -55,8 +55,9 @@ def init_milvus_database():
         else:
             db_path = Path(db_path)
 
-        db_path.parent.mkdir(parents=True, exist_ok=True)
         db_file = db_path
+        if not db_file.exists():
+            db_file.parent.mkdir(parents=True, exist_ok=True)
         logger.info(f"Milvus database file: {db_file}")
         
         # Initialize Milvus Lite client (SQLite backend)

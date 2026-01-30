@@ -1,13 +1,31 @@
 import asyncio
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from PIL import Image
-from train.detect import _suppress_host_check_logs, _extract_seal_boxes
 from paddleocr import LayoutDetection
 
 from seal_embedding_api.logger_config import get_logger
 from seal_embedding_api.config_loader import DetectionModelConfig
 
 logger = get_logger(__name__)
+
+
+def _extract_seal_boxes(res_obj: Any) -> List[Dict[str, Any]]:
+    boxes = None
+    if hasattr(res_obj, "boxes"):
+        boxes = getattr(res_obj, "boxes")
+    elif isinstance(res_obj, dict) and "boxes" in res_obj:
+        boxes = res_obj["boxes"]
+
+    seals: List[Dict[str, Any]] = []
+    if boxes:
+        for item in boxes:
+            if not isinstance(item, dict):
+                continue
+            label = item.get("label")
+            if label == "seal" or item.get("cls_id") == 16:
+                seals.append(item)
+    return seals
+
 
 class DetectionService:
     def __init__(self, config: DetectionModelConfig):
@@ -19,8 +37,7 @@ class DetectionService:
         try:
             logger.info(f"初始化 LayoutDetection 模型: {self.config.model_name}")
 
-            with _suppress_host_check_logs():
-                self.model = LayoutDetection(model_name=self.config.model_name)
+            self.model = LayoutDetection(model_name=self.config.model_name)
             
             logger.info(
                 f"LayoutDetection 模型加载成功: {self.config.model_name}, "
@@ -59,8 +76,7 @@ class DetectionService:
                     img = img.convert("RGB")
                 rgb_images.append(img)
             
-            with _suppress_host_check_logs():
-                results = self.model.predict(rgb_images, batch_size=batch_size)
+            results = self.model.predict(rgb_images, batch_size=batch_size)
             
             seals = []
             detected_count = 0
