@@ -5,7 +5,11 @@ FastAPI service for seal detection, embedding ingestion, similarity search, and 
 
 Quick Start
 -----------
-1) Create and activate virtual environment in `.venv`.
+1) Install `uv` and create the environment:
+```
+pip install uv
+uv sync
+```
 2) Run the server:
 
 Linux:
