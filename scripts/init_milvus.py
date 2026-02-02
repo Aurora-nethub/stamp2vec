@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 """
 Milvus 数据库初始化脚本
-- 检查 Milvus 数据库是否存在
-- 如果不存在，创建数据库和集合
-- 配置从 config/api_config.json 读取
+• 检查 Milvus 数据库是否存在
+
+• 如果不存在，创建数据库和集合
+
+• 配置从 config/api_config.json 读取
+
 
 使用 Milvus Lite（SQLite 后端）
 """
@@ -98,14 +101,16 @@ def init_milvus_database():
         # Prepare index parameters
         logger.info(f"Preparing index parameters for collection '{collection_name}'...")
         index_params = client.prepare_index_params()
+        
+        # 修改这里：将 HNSW 改为 IVF_FLAT
         index_params.add_index(
             field_name="vector",
-            index_type="HNSW",
+            index_type="IVF_FLAT",  # 修改为 Milvus Lite 支持的索引类型
             metric_type="COSINE",
-            params={"M": 16, "efConstruction": 200},
+            params={"nlist": 128},  # IVF_FLAT 的参数
         )
         
-        logger.info("Index parameters prepared: HNSW, COSINE metric")
+        logger.info("Index parameters prepared: IVF_FLAT, COSINE metric")
         
         # Create collection with schema and index
         logger.info(f"Creating collection '{collection_name}'...")
