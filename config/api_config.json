@@ -12,7 +12,7 @@
     "embedding_batch_size": 32
   },
   "milvus": {
-    "db_path": "/data/milvus/seals.db",
+    "db_path": "/database/milvus/seals.db",
     "collection_name": "seals",
     "dimension": 768
   },
