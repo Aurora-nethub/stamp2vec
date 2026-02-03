@@ -147,8 +147,8 @@ async def health_check(
         
         if milvus_service:
             try:
-                milvus_loaded = True
                 milvus_collection = milvus_service.collection_name
+                milvus_loaded = True
                 milvus_count = milvus_service.count()
             except Exception as e:
                 milvus_loaded = False

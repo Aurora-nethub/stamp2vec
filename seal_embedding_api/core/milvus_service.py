@@ -134,7 +134,8 @@ class MilvusService:
     
     def count(self) -> int:
         try:
-            count = self.client.num_entities(collection_name=self.collection_name)
+            stats = self.client.get_collection_stats(collection_name=self.collection_name)
+            count = int(stats.get("row_count", 0))
             logger.info(f"Collection count: {count}")
             return count
         except Exception as e:
