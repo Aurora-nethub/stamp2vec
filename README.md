@@ -37,6 +37,7 @@ Notes
 -----
 Current input format is base64 images only.
 Milvus Lite database path is configured in `config/api_config.json` (default: `/data/milvus/seals.db`).
+Branch usage: `master` is for deployment. `train` is for model training and requires re-preparing a CUDA environment.
 
 Repository Layout
 -----------------
